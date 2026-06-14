@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PAST ― 冥王ヨウヘイ 世界観データベース</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0A0E1A; }
+  #root { min-height: 100vh; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #243049; border-radius: 4px; }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+/* =========================================================================
+   PAST ― 冥王ヨウヘイ 世界観データベース
+   =========================================================================
+   ★設定の追加・編集はこの DATA だけをいじればOK。
+   ★画像の入れ方：
+     1. GitHubリポジトリの中に images/ フォルダを作る
+     2. そこにキャラ画像をアップロード（例：images/mika.jpg）
+     3. 下のキャラデータの image: に「ファイル名だけ」を書く（例：image: "mika.jpg"）
+     URLを毎回貼る必要はなし。空文字 "" なら画像枠（プレースホルダ）が出る。
+   ========================================================================= */
+
+const IMAGE_DIR = "images/"; // GitHubのimagesフォルダを参照
+
+/* ---- 陣営（世界圏）の定義 ---- */
+const FACTIONS = {
+  ally:      { label: "仲間（家族）", color: "#7DD3FC" },
+  kivotos:   { label: "キヴォトス",   color: "#F9A8D4" },
+  god:       { label: "神界",         color: "#FCD34D" },
+  demon:     { label: "魔界",         color: "#F87171" },
+  cthulhu:   { label: "クトゥルフ",   color: "#A78BFA" },
+  camelot:   { label: "キャメロット", color: "#86EFAC" },
+  youkai:    { label: "妖怪屋",       color: "#C4B5FD" },
+  faerie:    { label: "妖精の森",     color: "#6EE7B7" },
+  netherworld:{ label: "冥界",        color: "#D8B4FE" },
+};
+
+/* ---- 属性 ---- */
+const ELEMENTS = {
+  thunder: "雷", flame: "炎", water: "水", moon: "月",
+  sun: "太陽", none: "無（フィジカル）", faerie: "妖精",
+  god: "神性", demon: "魔性", outer: "外なるもの", nether: "冥",
+};
+
+/* =========================================================================
+   キャラクターデータ
+   melee : タイマンレート（1対1の強さ） 0-100
+   war   : 戦争レート（物量・対軍の強さ） 0-100
+   ========================================================================= */
+const DATA = {
+  characters: [
+    {
+      id: "youhei", name: "冥王 ヨウヘイ", faction: "ally", element: "thunder",
+      image: "", role: "主人公／世界最強の雷剣士",
+      melee: 100, war: 88,
+      tags: ["原初・白雷", "第一次世界戦争の英雄", "妖精王の剣を継ぐ者"],
+      desc:
+        "21歳・黒髪パーマ・ネイビーのシャツ・少し眠そうな目。世界中で知らぬ者なき異名「冥王」。" +
+        "普段は気楽で明るく面倒事が嫌いなだけだが、剣術・雷の扱い・戦闘技術・判断力・魔力量すべてが世界最高峰。" +
+        "1対1なら世界最強。雷を剣に纏わせて戦う魔導剣士の究極形。",
+      skills: [
+        "白雷・明鏡止水 ― 最終奥義。静寂の中の一撃",
+        "迅雷・百花繚乱 ― 超高速連続斬撃。対軍・対強敵の主力",
+        "雷・竜王 ― 雷龍を纏う斬撃（青/黒/迅/白モード）",
+        "雷・一閃 ― 最速の抜刀術。冥王の代名詞（青/黒/迅/白モード）",
+      ],
+    },
+    {
+      id: "shiva", name: "シヴァ", faction: "ally", element: "flame",
+      image: "", role: "お父さん枠",
+      melee: 70, war: 65,
+      tags: ["黒炎", "元・神界"],
+      desc: "青い肌・白髪・34歳。神界から昔排斥され、ヨウヘイがスカウト。仲間内では優しいお父さんのような存在。",
+      skills: [],
+    },
+    {
+      id: "mitsuki", name: "美月", faction: "ally", element: "moon",
+      image: "", role: "慕う妹枠",
+      melee: 40, war: 35,
+      tags: ["月属性（希少）"],
+      desc: "黒髪ポニテのしっかり者。親に捨てられていたところを太陽とセットで拾われた。ヨウヘイを兄として慕う。最後は太陽と結ばれる。",
+      skills: [],
+    },
+    {
+      id: "taiyo", name: "太陽", faction: "ally", element: "sun",
+      image: "", role: "慕う弟枠",
+      melee: 42, war: 38,
+      tags: ["太陽属性（希少）"],
+      desc: "赤髪の活発な少年。美月とセットで拾われた。ヨウヘイを兄として慕う。",
+      skills: [],
+    },
+    {
+      id: "titania", name: "ティターニア", faction: "faerie", element: "faerie",
+      image: "", role: "お母さん枠／妖精王",
+      melee: 55, war: 60,
+      tags: ["妖精王", "リラの意思を継ぐ"],
+      desc: "新しい妖精王。リラから意思を継ぎ、妖精の森を守ることを決意。基本は森を守るので戦わない。",
+      skills: [],
+    },
+    {
+      id: "alice", name: "アリス", faction: "ally", element: "none",
+      image: "", role: "寝て食べる妹枠",
+      melee: 68, war: 30,
+      tags: ["フィジカルギフテッド", "魔力ゼロ"],
+      desc: "金髪ゴスロリ・小柄。魔力を一切使えないが、剣・武術において別格に強い。普通の王女然としているのに最強格。",
+      skills: [],
+    },
+    {
+      id: "ele", name: "エレちゃん", faction: "netherworld", element: "nether",
+      image: "", role: "冥界の王女",
+      melee: 66, war: 55,
+      tags: ["冥界の王女", "ヨウヘイに恋愛感情"],
+      desc: "金髪ツインテ・見た目はお姉さん（貧乳）。「〜なのだわ」口調のポンコツだが強い。冥界が妖精の森と繋がっているのですぐ会える。",
+      skills: [],
+    },
+    /* ---- キヴォトス勢 ---- */
+    {
+      id: "mika", name: "ミカ", faction: "kivotos", element: "none",
+      image: "", role: "ヒロイン／トリニティ",
+      melee: 58, war: 45,
+      tags: ["トリニティ学園", "お姫様になりたい"],
+      desc: "ピンク髪のお嬢様・天使の輪。「おまたせ！これからはなんでも私に任せてね☆」と明るい。過去に事件を起こし孤立。" +
+        "空腹のヨウヘイを匿い食事を与えた。ヨウヘイの『俺はあなたが好きだよ』に心を惹かれ、後に惚れる。",
+      skills: [],
+    },
+    {
+      id: "hina", name: "ヒナ", faction: "kivotos", element: "none",
+      image: "", role: "ゲヘナ",
+      melee: 62, war: 50,
+      tags: ["ゲヘナ学園", "ヨウヘイをお兄ちゃんと慕う"],
+      desc: "白髪ツインテのロリ。幼少期にヨウヘイと会っており、お兄ちゃんと慕っていた記憶を思い出す。恋愛に疎いがそれに近い感情を抱く。",
+      skills: [],
+    },
+    {
+      id: "hoshino", name: "ホシノ", faction: "kivotos", element: "none",
+      image: "", role: "アビドスのトップ",
+      melee: 60, war: 48,
+      tags: ["アビドス学園"],
+      desc: "アビドス学園のトップ。魔界の侵攻に出陣した強い生徒のひとり。",
+      skills: [],
+    },
+    {
+      id: "tsurugi", name: "ツルギ", faction: "kivotos", element: "none",
+      image: "", role: "強い生徒",
+      melee: 59, war: 45,
+      tags: ["所属未確定"],
+      desc: "強い生徒として出陣。所属学園は未確定。",
+      skills: [],
+    },
+    {
+      id: "seia", name: "セイア", faction: "kivotos", element: "none",
+      image: "", role: "トリニティ／ミカの友人",
+      melee: 52, war: 44,
+      tags: ["トリニティ学園", "お嬢様"],
+      desc: "ミカの友人のお嬢様。トリニティ学園所属。",
+      skills: [],
+    },
+    {
+      id: "nagisa", name: "ナギサ", faction: "kivotos", element: "none",
+      image: "", role: "トリニティ／ミカの友人",
+      melee: 52, war: 44,
+      tags: ["トリニティ学園", "お嬢様"],
+      desc: "ミカの友人のお嬢様。トリニティ学園所属。",
+      skills: [],
+    },
+    /* ---- 神界 ---- */
+    {
+      id: "odin", name: "オーディン", faction: "god", element: "water",
+      image: "", role: "神界最強",
+      melee: 90, war: 82,
+      tags: ["原初・青（水）", "神界最強"],
+      desc: "原初の青を持つ水の使い手。タイマンではヨウヘイの次に強い。元からコピーでも上限がなく、第1章でコピーながらヨウヘイと互角の名勝負を演じた。神界最強は今も彼。",
+      skills: [],
+    },
+    {
+      id: "hades", name: "ハデス", faction: "god", element: "god",
+      image: "", role: "リラの仇（討伐済）",
+      melee: 64, war: 50,
+      tags: ["第1章で討伐済", "リラの仇"],
+      desc: "リラの命を奪った神界の存在。第1章でヨウヘイに討たれ、復讐は果たされた。",
+      skills: [],
+    },
+    /* ---- 魔界 ---- */
+    {
+      id: "diablo", name: "ディアボロ", faction: "demon", element: "demon",
+      image: "", role: "魔界の台頭株",
+      melee: 88, war: 80,
+      tags: ["オーディンクラス"],
+      desc: "第3章で台頭した魔界の実力者。強さはオーディンクラス。",
+      skills: [],
+    },
+    {
+      id: "lucifer", name: "ルシファー", faction: "demon", element: "demon",
+      image: "", role: "魔界（撃退済）",
+      melee: 78, war: 70,
+      tags: ["オーディンの少し下", "キヴォトスで撃退"],
+      desc: "オーディンの少し下の実力。キヴォトス人の強さを利用しようと侵攻し学園を破壊したが、ヨウヘイに撃退された。",
+      skills: [],
+    },
+    /* ---- クトゥルフ ---- */
+    {
+      id: "azathoth", name: "アザトース", faction: "cthulhu", element: "outer",
+      image: "", role: "クトゥルフ最強格",
+      melee: 96, war: 85,
+      tags: ["ヨウヘイと僅差", "オーディンより上"],
+      desc: "クトゥルフの最強格。タイマンではヨウヘイともわずかな差しかない。オーディンよりちょっと上。",
+      skills: [],
+    },
+    {
+      id: "yogsothoth", name: "ヨグソトース", faction: "cthulhu", element: "outer",
+      image: "", role: "クトゥルフ三柱",
+      melee: 91, war: 84,
+      tags: ["オーディンより少し上"],
+      desc: "クトゥルフの三柱のひとり。オーディンよりちょっと上の実力。",
+      skills: [],
+    },
+    {
+      id: "nyarlathotep", name: "ニャルラトホテプ", faction: "cthulhu", element: "outer",
+      image: "", role: "戦争型最強",
+      melee: 80, war: 100,
+      tags: ["戦争軸の頂点", "無敵の艦隊を生成"],
+      desc: "タイマンはルシファーより上程度だが、生物を生み出す力を持ち無敵の艦隊を生成できる。戦争という意味では最強。",
+      skills: [],
+    },
+    /* ---- キャメロット / 妖怪 ---- */
+    {
+      id: "arthur", name: "アーサー", faction: "camelot", element: "none",
+      image: "", role: "アーサー家",
+      melee: 70, war: 72,
+      tags: ["シヴァ級"],
+      desc: "キャメロット・アーサー家。実力はシヴァ級。ぬらりひょん家と因縁の戦いを繰り広げる。",
+      skills: [],
+    },
+    {
+      id: "nurarihyon", name: "ぬらりひょん", faction: "youkai", element: "none",
+      image: "", role: "ぬらりひょん家",
+      melee: 70, war: 72,
+      tags: ["シヴァ級"],
+      desc: "妖怪屋・ぬらりひょん家。実力はシヴァ級。アーサー家と因縁の戦いを繰り広げる。",
+      skills: [],
+    },
+  ],
+
+  /* ---- 故人・特殊枠 ---- */
+  special: [
+    {
+      id: "lila", name: "キスキル＝リラ", faction: "faerie", element: "faerie",
+      image: "", role: "妖精王の剣",
+      tags: ["ヨウヘイの幼馴染", "妖精王の剣"],
+      desc: "ヨウヘイの幼馴染で妖精王の後継者。幼い頃ハデスに命を奪われたが、妖精王の継承により剣へと変化した。" +
+        "精神も人格も残らず会話もできない、本当にただの剣。だからこそリラは死んでいる。それでもヨウヘイにとっては今も共に戦う存在。",
+    },
+  ],
+
+  /* ---- 世界圏 ---- */
+  worlds: [
+    { id: "kivotos", name: "キヴォトス", note: "学園都市。住民は身体能力が異常に高く武器を当然のように持つ。男性は『先生』のみ。第3章の現在地。" },
+    { id: "camelot", name: "キャメロット", note: "アーサー家の勢力。妖怪屋と因縁。" },
+    { id: "youkai", name: "妖怪屋", note: "ぬらりひょん家の勢力。キャメロットと因縁。" },
+    { id: "demon", name: "悪魔界（魔界）", note: "ディアボロ・ルシファーが台頭。" },
+    { id: "god", name: "神界", note: "『原典』と現世用『コピー』が存在。神界最強はオーディン。" },
+    { id: "faerie", name: "妖精の森", note: "ヨウヘイたちのホームベース。冥界と地下で繋がる。ティターニアが守る。" },
+    { id: "cthulhu", name: "クトゥルフ", note: "第2章ラストで世界に割り込んだ外来勢力。アザトース・ヨグソトース・ニャルラトホテプ。" },
+    { id: "netherworld", name: "冥界", note: "妖精の森と繋がる。エレちゃんが王女。" },
+  ],
+
+  /* ---- 魔法体系 ---- */
+  magic: {
+    intro: "生物は基本『一人につき一属性』を持つ。属性自体は珍しくない。重要なのはその属性をどこまで極められるか。",
+    stages: [
+      { stage: "基本（固有色）", thunder: "青雷", flame: "赤炎", note: "スタート地点" },
+      { stage: "上位（黒）", thunder: "黒雷", flame: "黒炎", note: "歴史上最強格が到達する一般的な頂点" },
+      { stage: "特殊上位", thunder: "迅雷", flame: "―", note: "ヨウヘイのみ到達。属性ごとに有無が違う" },
+      { stage: "原初", thunder: "白雷", flame: "緋炎", note: "最大を超えた最大。各属性1名のみ" },
+    ],
+    primordials: [
+      { name: "白雷", element: "雷", user: "冥王ヨウヘイ", known: true },
+      { name: "緋炎", element: "炎", user: "未登場／未確定", known: false },
+      { name: "青", element: "水", user: "オーディン", known: true },
+      { name: "？", element: "未確定", user: "未確定", known: false },
+      { name: "？", element: "未確定", user: "未確定", known: false },
+      { name: "？", element: "未確定", user: "未確定", known: false },
+    ],
+  },
+
+  /* ---- 章立て ---- */
+  chapters: [
+    {
+      no: "第1章", title: "復讐と弔い",
+      body: [
+        "リラとの別れ、そして仇討ち。仇は神界のハデス。",
+        "神界最強オーディン（この時はコピー、ただし上限なし）との一騎打ちに勝利。",
+        "復讐を果たし戦争も終結。ヨウヘイは英雄となる。",
+      ],
+    },
+    {
+      no: "第2章", title: "キャメロット vs 妖怪",
+      body: [
+        "因縁のアーサー家とぬらりひょん家が戦う。ヨウヘイたちは不参加。",
+        "両者ともシヴァ級。決着つかず終戦、大戦争の火種を残す。",
+        "ラスト：クトゥルフよりアザトース・ニャルラトホテプ・ヨグソトースが世界に割り込む。",
+      ],
+    },
+    {
+      no: "第3章", title: "三勢力の台頭、そしてキヴォトスへ", current: true,
+      body: [
+        "クトゥルフ勢が出現。さらに神界（今回は原典本体）・魔界（ディアボロ／ルシファー）も台頭。",
+        "『近いうちに大戦争が起きる』と宣言され各勢力いったん帰還。",
+        "空腹のヨウヘイがキヴォトスへ迷い込み、ミカに匿われる。",
+        "魔界（ルシファー率いる）がキヴォトス侵攻、学園を破壊。先生・ヒナ・ホシノ・ツルギが出陣も敗北。",
+        "ミカ単身で救援→ボコられる→ヨウヘイがお姫様抱っこで救出→ミカ惚れる。",
+        "ヨウヘイがルシファーを撃退。ヒナが幼少期の記憶を思い出す。現在キヴォトス滞在中。",
+      ],
+    },
+  ],
+
+  /* ---- 今後の火種 ---- */
+  foreshadow: [
+    "キヴォトスで起こる大戦争が控えている。",
+    "妖怪屋・キャメロットには、まだ明かされていない強者が実はいる。",
+    "クトゥルフ＋神界（原典）＋魔界の三つ巴大戦の予兆。",
+    "アーサー家 vs ぬらりひょん家の再戦（大戦争化）。",
+    "緋炎（炎の原初）の使い手は未登場。原初の残り3枠も未確定。",
+  ],
+};
+
+/* =========================================================================
+   ここから下は表示ロジック（基本いじらなくてOK）
+   ========================================================================= */
+
+const C = {
+  bg: "#0A0E1A", bg2: "#111729", card: "#161D33", line: "#243049",
+  text: "#E8ECF6", sub: "#8B96B0", white: "#F5F9FF", blue: "#5BA9F8",
+  thunder: "#BFE3FF", gold: "#FCD34D",
+};
+
+function Avatar({ image, name, color, size = 64 }) {
+  const src = image ? IMAGE_DIR + image : "";
+  const [err, setErr] = useState(false);
+  if (src && !err) {
+    return (
+      <img src={src} alt={name} onError={() => setErr(true)}
+        style={{ width: size, height: size, borderRadius: 12, objectFit: "cover",
+          border: `1px solid ${C.line}` }} />
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: 12,
+      background: `linear-gradient(135deg, ${color}22, ${C.card})`,
+      border: `1px dashed ${color}66`, display: "flex", alignItems: "center",
+      justifyContent: "center", color: color, fontSize: size * 0.4, fontWeight: 700 }}>
+      {name.slice(0, 1)}
+    </div>
+  );
+}
+
+function PAST() {
+  const [tab, setTab] = useState("home");
+  const [factionFilter, setFactionFilter] = useState("all");
+  const [selected, setSelected] = useState(null);
+  const [cmpA, setCmpA] = useState("youhei");
+  const [cmpB, setCmpB] = useState("azathoth");
+  const [rankAxis, setRankAxis] = useState("melee");
+
+  const chars = DATA.characters;
+  const byId = useMemo(() => Object.fromEntries(chars.map((c) => [c.id, c])), [chars]);
+
+  const filtered = factionFilter === "all"
+    ? chars : chars.filter((c) => c.faction === factionFilter);
+
+  const ranked = useMemo(
+    () => [...chars].sort((a, b) => b[rankAxis] - a[rankAxis]),
+    [chars, rankAxis]
+  );
+
+  const tabs = [
+    ["home", "ホーム"], ["chars", "キャラ図鑑"], ["power", "強さ序列"],
+    ["worlds", "世界圏"], ["magic", "魔法体系"], ["story", "物語"],
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, color: C.text,
+      fontFamily: "'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif" }}>
+      {/* 雷の走る上部ライン */}
+      <div style={{ height: 3, background: `linear-gradient(90deg, transparent, ${C.white}, ${C.blue}, transparent)` }} />
+
+      {/* ヘッダー */}
+      <header style={{ padding: "20px 20px 12px", borderBottom: `1px solid ${C.line}`,
+        background: C.bg2, position: "sticky", top: 0, zIndex: 10 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 900, letterSpacing: 8,
+            background: `linear-gradient(180deg, ${C.white}, ${C.blue})`,
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            PAST
+          </h1>
+          <span style={{ color: C.sub, fontSize: 12, letterSpacing: 2 }}>
+            冥王ヨウヘイ 世界観データベース
+          </span>
+        </div>
+        {/* タブ */}
+        <nav style={{ display: "flex", gap: 6, marginTop: 14, overflowX: "auto", paddingBottom: 2 }}>
+          {tabs.map(([k, label]) => (
+            <button key={k} onClick={() => { setTab(k); setSelected(null); }}
+              style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 20, fontSize: 13,
+                cursor: "pointer", whiteSpace: "nowrap",
+                border: `1px solid ${tab === k ? C.blue : C.line}`,
+                background: tab === k ? `${C.blue}22` : "transparent",
+                color: tab === k ? C.white : C.sub, fontWeight: tab === k ? 700 : 400 }}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <main style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>
+        {tab === "home" && <Home byId={byId} setTab={setTab} />}
+        {tab === "chars" && (
+          <Chars filtered={filtered} factionFilter={factionFilter}
+            setFactionFilter={setFactionFilter} onSelect={setSelected} />
+        )}
+        {tab === "power" && (
+          <Power ranked={ranked} rankAxis={rankAxis} setRankAxis={setRankAxis}
+            chars={chars} cmpA={cmpA} cmpB={cmpB} setCmpA={setCmpA} setCmpB={setCmpB} byId={byId} />
+        )}
+        {tab === "worlds" && <Worlds />}
+        {tab === "magic" && <Magic />}
+        {tab === "story" && <Story />}
+      </main>
+
+      {selected && <CharModal c={byId[selected]} onClose={() => setSelected(null)} />}
+
+      <footer style={{ textAlign: "center", color: C.sub, fontSize: 11,
+        padding: "30px 0 40px", letterSpacing: 1 }}>
+        PAST ― 設定が増えたら DATA に追記
+      </footer>
+    </div>
+  );
+}
+
+/* ---- ホーム ---- */
+function Home({ byId, setTab }) {
+  const y = byId["youhei"];
+  return (
+    <div>
+      <div style={{ background: `linear-gradient(160deg, ${C.bg2}, ${C.card})`,
+        border: `1px solid ${C.line}`, borderRadius: 18, padding: 24,
+        position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 180, height: 180,
+          background: `radial-gradient(circle, ${C.blue}22, transparent 70%)` }} />
+        <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+          <Avatar image={y.image} name={y.name} color={C.thunder} size={92} />
+          <div>
+            <div style={{ color: C.thunder, fontSize: 12, letterSpacing: 3 }}>原初・白雷</div>
+            <div style={{ fontSize: 26, fontWeight: 900, margin: "2px 0" }}>{y.name}</div>
+            <div style={{ color: C.sub, fontSize: 13 }}>{y.role}</div>
+          </div>
+        </div>
+        <p style={{ color: C.text, fontSize: 14, lineHeight: 1.9, marginTop: 16 }}>{y.desc}</p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+        <Stat label="現在" value="第3章" sub="キヴォトス滞在中" onClick={() => setTab("story")} />
+        <Stat label="タイマン" value="世界最強" sub="1対1なら別格" onClick={() => setTab("power")} />
+      </div>
+
+      <SectionTitle>このデータベースについて</SectionTitle>
+      <p style={{ color: C.sub, fontSize: 13, lineHeight: 1.9 }}>
+        第一次世界戦争終結から3年後を起点とする物語。各タブからキャラ・強さ・世界圏・魔法体系・物語を閲覧できる。
+        妄想が増えたらコード内の DATA に追記すれば、すべての画面に自動で反映される。
+      </p>
+    </div>
+  );
+}
+
+function Stat({ label, value, sub, onClick }) {
+  return (
+    <div onClick={onClick} style={{ background: C.card, border: `1px solid ${C.line}`,
+      borderRadius: 14, padding: 16, cursor: "pointer" }}>
+      <div style={{ color: C.sub, fontSize: 11, letterSpacing: 2 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: C.white, margin: "4px 0" }}>{value}</div>
+      <div style={{ color: C.blue, fontSize: 12 }}>{sub}</div>
+    </div>
+  );
+}
+
+/* ---- キャラ図鑑 ---- */
+function Chars({ filtered, factionFilter, setFactionFilter, onSelect }) {
+  const chips = [["all", "すべて"], ...Object.entries(FACTIONS).map(([k, v]) => [k, v.label])];
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+        {chips.map(([k, label]) => (
+          <button key={k} onClick={() => setFactionFilter(k)}
+            style={{ padding: "6px 12px", borderRadius: 16, fontSize: 12, cursor: "pointer",
+              border: `1px solid ${factionFilter === k ? C.blue : C.line}`,
+              background: factionFilter === k ? `${C.blue}22` : "transparent",
+              color: factionFilter === k ? C.white : C.sub }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {filtered.map((c) => {
+          const f = FACTIONS[c.faction];
+          return (
+            <div key={c.id} onClick={() => onSelect(c.id)}
+              style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14,
+                padding: 14, cursor: "pointer", display: "flex", gap: 12, alignItems: "center" }}>
+              <Avatar image={c.image} name={c.name} color={f.color} size={52} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap",
+                  overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
+                <div style={{ color: f.color, fontSize: 11 }}>{f.label}</div>
+                <div style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
+                  {ELEMENTS[c.element]}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---- キャラ詳細モーダル ---- */
+function CharModal({ c, onClose }) {
+  if (!c) return null;
+  const f = FACTIONS[c.faction];
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "#000A",
+      display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: C.bg2,
+        borderTop: `2px solid ${f.color}`, borderRadius: "20px 20px 0 0", padding: 24,
+        width: "100%", maxWidth: 760, maxHeight: "85vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <Avatar image={c.image} name={c.name} color={f.color} size={80} />
+          <div>
+            <div style={{ color: f.color, fontSize: 12 }}>{f.label}・{ELEMENTS[c.element]}</div>
+            <div style={{ fontSize: 22, fontWeight: 900 }}>{c.name}</div>
+            <div style={{ color: C.sub, fontSize: 13 }}>{c.role}</div>
+          </div>
+        </div>
+
+        {(c.melee != null) && (
+          <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+            <Gauge label="タイマン" v={c.melee} color={C.thunder} />
+            <Gauge label="戦争" v={c.war} color={C.gold} />
+          </div>
+        )}
+
+        {c.tags && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 16 }}>
+            {c.tags.map((t) => (
+              <span key={t} style={{ fontSize: 11, color: f.color,
+                border: `1px solid ${f.color}66`, borderRadius: 12, padding: "3px 10px" }}>{t}</span>
+            ))}
+          </div>
+        )}
+
+        <p style={{ color: C.text, fontSize: 14, lineHeight: 1.9, marginTop: 16 }}>{c.desc}</p>
+
+        {c.skills && c.skills.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ color: C.sub, fontSize: 12, letterSpacing: 2, marginBottom: 8 }}>技</div>
+            {c.skills.map((s) => (
+              <div key={s} style={{ fontSize: 13, color: C.text, padding: "6px 0",
+                borderBottom: `1px solid ${C.line}` }}>{s}</div>
+            ))}
+          </div>
+        )}
+
+        <button onClick={onClose} style={{ marginTop: 20, width: "100%", padding: 12,
+          borderRadius: 12, border: `1px solid ${C.line}`, background: C.card,
+          color: C.text, fontSize: 14, cursor: "pointer" }}>閉じる</button>
+      </div>
+    </div>
+  );
+}
+
+function Gauge({ label, v, color }) {
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+        <span style={{ color: C.sub }}>{label}</span>
+        <span style={{ color, fontWeight: 700 }}>{v}</span>
+      </div>
+      <div style={{ height: 6, background: C.line, borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ width: `${v}%`, height: "100%", background: color,
+          boxShadow: `0 0 8px ${color}` }} />
+      </div>
+    </div>
+  );
+}
+
+/* ---- 強さ序列 ---- */
+function Power({ ranked, rankAxis, setRankAxis, chars, cmpA, cmpB, setCmpA, setCmpB, byId }) {
+  const a = byId[cmpA], b = byId[cmpB];
+  const max = Math.max(...ranked.map((c) => c[rankAxis]), 1);
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[["melee", "タイマン軸"], ["war", "戦争軸"]].map(([k, label]) => (
+          <button key={k} onClick={() => setRankAxis(k)}
+            style={{ flex: 1, padding: "10px", borderRadius: 12, fontSize: 13, cursor: "pointer",
+              border: `1px solid ${rankAxis === k ? C.blue : C.line}`,
+              background: rankAxis === k ? `${C.blue}22` : "transparent",
+              color: rankAxis === k ? C.white : C.sub, fontWeight: rankAxis === k ? 700 : 400 }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {ranked.map((c, i) => {
+        const f = FACTIONS[c.faction];
+        return (
+          <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
+            <span style={{ width: 22, color: i < 3 ? C.gold : C.sub, fontWeight: 800,
+              fontSize: i < 3 ? 16 : 13 }}>{i + 1}</span>
+            <span style={{ width: 110, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden",
+              textOverflow: "ellipsis" }}>{c.name}</span>
+            <div style={{ flex: 1, height: 8, background: C.line, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${(c[rankAxis] / max) * 100}%`, height: "100%",
+                background: `linear-gradient(90deg, ${f.color}, ${C.white})` }} />
+            </div>
+            <span style={{ width: 30, textAlign: "right", fontSize: 13, color: C.thunder,
+              fontWeight: 700 }}>{c[rankAxis]}</span>
+          </div>
+        );
+      })}
+
+      <SectionTitle>1対1 比較</SectionTitle>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        <Picker chars={chars} value={cmpA} onChange={setCmpA} />
+        <span style={{ alignSelf: "center", color: C.sub, fontSize: 13 }}>vs</span>
+        <Picker chars={chars} value={cmpB} onChange={setCmpB} />
+      </div>
+      <div style={{ display: "flex", gap: 12 }}>
+        <CmpCard c={a} other={b} />
+        <CmpCard c={b} other={a} />
+      </div>
+    </div>
+  );
+}
+
+function Picker({ chars, value, onChange }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)}
+      style={{ flex: 1, padding: 10, borderRadius: 10, background: C.card,
+        color: C.text, border: `1px solid ${C.line}`, fontSize: 13 }}>
+      {chars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+    </select>
+  );
+}
+
+function CmpCard({ c, other }) {
+  const f = FACTIONS[c.faction];
+  const winMelee = c.melee >= other.melee;
+  const winWar = c.war >= other.war;
+  return (
+    <div style={{ flex: 1, background: C.card, border: `1px solid ${C.line}`,
+      borderRadius: 14, padding: 14 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        <Avatar image={c.image} name={c.name} color={f.color} size={56} />
+        <div style={{ fontWeight: 700, fontSize: 14, textAlign: "center" }}>{c.name}</div>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <CmpRow label="タイマン" v={c.melee} win={winMelee} />
+        <CmpRow label="戦争" v={c.war} win={winWar} />
+      </div>
+    </div>
+  );
+}
+
+function CmpRow({ label, v, win }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13,
+      padding: "6px 0", borderBottom: `1px solid ${C.line}` }}>
+      <span style={{ color: C.sub }}>{label}</span>
+      <span style={{ color: win ? C.thunder : C.sub, fontWeight: win ? 800 : 400 }}>
+        {v}{win && " ▲"}
+      </span>
+    </div>
+  );
+}
+
+/* ---- 世界圏 ---- */
+function Worlds() {
+  return (
+    <div>
+      {DATA.worlds.map((w) => {
+        const f = FACTIONS[w.id] || { color: C.blue };
+        return (
+          <div key={w.id} style={{ background: C.card, border: `1px solid ${C.line}`,
+            borderLeft: `3px solid ${f.color}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: f.color }}>{w.name}</div>
+            <p style={{ color: C.text, fontSize: 13, lineHeight: 1.8, margin: "6px 0 0" }}>{w.note}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---- 魔法体系 ---- */
+function Magic() {
+  const m = DATA.magic;
+  return (
+    <div>
+      <p style={{ color: C.sub, fontSize: 13, lineHeight: 1.9 }}>{m.intro}</p>
+
+      <SectionTitle>属性の到達段階</SectionTitle>
+      {m.stages.map((s) => (
+        <div key={s.stage} style={{ background: C.card, border: `1px solid ${C.line}`,
+          borderRadius: 12, padding: 14, marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: C.thunder }}>{s.stage}</div>
+          <div style={{ display: "flex", gap: 16, margin: "6px 0", fontSize: 13 }}>
+            <span>雷：<b style={{ color: C.white }}>{s.thunder}</b></span>
+            <span>炎：<b style={{ color: C.white }}>{s.flame}</b></span>
+          </div>
+          <div style={{ color: C.sub, fontSize: 12 }}>{s.note}</div>
+        </div>
+      ))}
+
+      <SectionTitle>原初の魔法（6枠）</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {m.primordials.map((p, i) => (
+          <div key={i} style={{ background: p.known ? `${C.blue}15` : C.card,
+            border: `1px solid ${p.known ? C.blue + "66" : C.line}`, borderRadius: 12, padding: 14 }}>
+            <div style={{ fontSize: 18, fontWeight: 900,
+              color: p.known ? C.white : C.sub }}>{p.name}</div>
+            <div style={{ fontSize: 12, color: C.sub, marginTop: 4 }}>属性：{p.element}</div>
+            <div style={{ fontSize: 12, color: p.known ? C.thunder : C.sub }}>{p.user}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---- 物語 ---- */
+function Story() {
+  return (
+    <div>
+      {DATA.chapters.map((ch) => (
+        <div key={ch.no} style={{ position: "relative", paddingLeft: 24, marginBottom: 24 }}>
+          <div style={{ position: "absolute", left: 0, top: 4, width: 12, height: 12,
+            borderRadius: "50%", background: ch.current ? C.blue : C.line,
+            boxShadow: ch.current ? `0 0 10px ${C.blue}` : "none" }} />
+          <div style={{ position: "absolute", left: 5, top: 16, bottom: -20, width: 2,
+            background: C.line }} />
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ color: ch.current ? C.blue : C.sub, fontWeight: 800, fontSize: 14 }}>{ch.no}</span>
+            <span style={{ fontWeight: 700, fontSize: 16 }}>{ch.title}</span>
+            {ch.current && <span style={{ fontSize: 10, color: C.bg, background: C.blue,
+              borderRadius: 8, padding: "2px 8px", fontWeight: 700 }}>現在</span>}
+          </div>
+          <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+            {ch.body.map((b, i) => (
+              <li key={i} style={{ color: C.text, fontSize: 13, lineHeight: 1.9 }}>{b}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+
+      <SectionTitle>今後の火種</SectionTitle>
+      {DATA.foreshadow.map((f, i) => (
+        <div key={i} style={{ background: C.card, border: `1px solid ${C.line}`,
+          borderRadius: 10, padding: "12px 14px", marginBottom: 8, fontSize: 13,
+          color: C.text, lineHeight: 1.7 }}>{f}</div>
+      ))}
+    </div>
+  );
+}
+
+function SectionTitle({ children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "28px 0 14px" }}>
+      <div style={{ width: 3, height: 16, background: C.blue }} />
+      <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, letterSpacing: 1 }}>{children}</h2>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<PAST />);
+</script>
+</body>
+</html>
